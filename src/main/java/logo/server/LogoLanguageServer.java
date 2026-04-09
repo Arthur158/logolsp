@@ -16,6 +16,7 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities caps = new ServerCapabilities();
         caps.setTextDocumentSync(TextDocumentSyncKind.Full);
+        caps.setDefinitionProvider(true);
 
         SemanticTokensWithRegistrationOptions semanticOpts = new SemanticTokensWithRegistrationOptions();
         semanticOpts.setFull(Either.forLeft(true));

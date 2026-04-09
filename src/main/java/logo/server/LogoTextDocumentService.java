@@ -1,15 +1,18 @@
 package logo.server;
 
 import logo.analysis.DocumentState;
+import logo.features.DefinitionHandler;
 import logo.features.SemanticTokensHandler;
 import org.eclipse.lsp4j.*;
-import org.eclipse.lsp4j.services.TextDocumentService;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
-import java.util.List;
+import org.eclipse.lsp4j.services.TextDocumentService;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import logo.features.DiagnosticsHandler;
 
 public class LogoTextDocumentService implements TextDocumentService {
 
@@ -22,16 +25,39 @@ public class LogoTextDocumentService implements TextDocumentService {
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
-        String uri  = params.getTextDocument().getUri();
-        String text = params.getTextDocument().getText();
-        documents.put(uri, DocumentState.parse(uri, text));
+        parseAndPublish(
+            params.getTextDocument().getUri(),
+            params.getTextDocument().getText()
+        );
     }
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
-        String uri  = params.getTextDocument().getUri();
-        String text = params.getContentChanges().get(0).getText();
-        documents.put(uri, DocumentState.parse(uri, text));
+        parseAndPublish(
+            params.getTextDocument().getUri(),
+            params.getContentChanges().get(0).getText()
+        );
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>>
+    definition(DefinitionParams params) {
+        DocumentState doc = documents.get(params.getTextDocument().getUri());
+        if (doc == null) return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+
+        Location loc = DefinitionHandler.findDefinition(doc, params.getPosition());
+        if (loc == null) return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+
+        return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
+    }
+
+    private void parseAndPublish(String uri, String text) {
+        DocumentState doc = DocumentState.parse(uri, text);
+        documents.put(uri, doc);
+
+        // compute and push diagnostics
+        List<Diagnostic> diagnostics = DiagnosticsHandler.compute(doc);
+        client.publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
     }
 
     @Override

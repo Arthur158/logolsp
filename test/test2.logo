@@ -1,0 +1,16 @@
+; procedure declarations
+to square :size
+  repeat 4 [forward :size right 90]
+end
+
+to polygon :sides :size
+  repeat :sides [forward :size right 360 / :sides]
+end
+
+; variable declarations
+make "mySize 50
+make "myColor 3
+
+; procedure calls — try goto on these
+square :mySize
+polygon 6 :mySize

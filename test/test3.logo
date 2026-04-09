@@ -1,0 +1,12 @@
+to square :size
+  repeat 4 [forward :size right 90]
+end
+
+; call an undefined procedure
+square 50
+
+; reference an undeclared variable
+forward :undeclaredVar
+
+; this should be fine
+square 50
