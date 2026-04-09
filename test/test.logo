@@ -1,0 +1,20 @@
+; This is a comment
+
+to square :size
+  repeat 4 [forward :size right 90]
+end
+
+to triangle :size
+  repeat 3 [forward :size right 120]
+end
+]
+to drawShapes :count
+  make "i 0
+  repeat :count [
+    square 50
+    right 45
+    triangle 30
+  ]
+end
+
+drawShapes 8

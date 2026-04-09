@@ -1,0 +1,13 @@
+.gradle
+kls_database.db
+.bloop
+.idea
+build
+.metals
+.settings
+bin
+gradle
+.project
+.classpath
+gradlew
+gradlew.bat
