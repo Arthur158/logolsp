@@ -1,6 +1,8 @@
 package logo.features;
 
 import logo.analysis.DocumentState;
+import logo.analysis.Logger;
+
 import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
@@ -14,16 +16,7 @@ public class DefinitionHandler {
         Token target    = null;
         Token prevToken = null;
 
-        String scopeName = null; // starts in global
-
         for (Token token : doc.tokens.getTokens()) {
-            if (prevToken.getText() == "to") {
-                // if in a function, scopeName is the function we are in
-                scopeName = token.getText();
-            }
-            if (prevToken.getText() == "end") {
-                scopeName = null;
-            }
             if (contains(token, cursor)) {
                 target = token;
                 break;
@@ -38,14 +31,15 @@ public class DefinitionHandler {
 
         // check if it's a variable reference (:name)
         if (prevToken != null && prevToken.getText().equals(":")) {
-            decl = doc.symbols.findVariable(name, scopeName, target.getLine());
+            decl = doc.symbols.findVariable(name, target.getLine());
         } else {
+            Logger.log("unexpected");
             // try procedure first, then variable (for "name in MAKE)
             decl = doc.symbols.findProcedure(name);
             if (decl == null) {
                 // strip leading " for quoted words
                 decl = doc.symbols.findVariable(name.startsWith("\"")
-                    ? name.substring(1) : name, scopeName, target.getLine());
+                    ? name.substring(1) : name, target.getLine());
             }
         }
 

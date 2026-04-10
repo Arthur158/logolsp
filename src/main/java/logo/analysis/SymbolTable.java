@@ -35,9 +35,7 @@ public class SymbolTable {
 
     public void addProcedure(String name, Range range, List<String> params, Range funcRange) {
         procedures.put(name.toLowerCase(), new ProcedureSignature(range, params));
-        Logger.log("adding provedure:");
-        Logger.log(name);
-        Logger.log(range.toString());
+        procedureRanges.add(Map.entry(funcRange, name.toLowerCase()));
     }
 
     public ProcedureSignature getProcedure(String name) {
@@ -68,35 +66,40 @@ public class SymbolTable {
         variableRefs.add(new SymbolReference(name, range, scope, line));
     }
 
-    // public Range findVariable(String name, Position pos) {
-
-    // }
-
     // find declaration range for goto-definition
-    public Range findVariable(String name, String scope, int line) {
+    public Range findVariable(String name, int line) {
+        String scope = null;
+
+        for (Map.Entry<Range, String> entry : procedureRanges) {
+            if (entry.getKey().getStart().getLine() <= line && entry.getKey().getEnd().getLine() >= line) scope = entry.getValue();
+        }
+
         String key = name.toLowerCase();
 
         VariableDeclaration currBest = null;
         // check local scope first
         List<VariableDeclaration> localList = getFromScope(key, scope);
         for (VariableDeclaration local : localList) {
-            if (local != null && local.line() < line && currBest.line < local.line()) currBest = local;
+            if (local != null && local.line() < line && (currBest == null || currBest.line < local.line())) currBest = local;
         }
         List<VariableDeclaration> globalList = getFromScope(key, scope);
         for (VariableDeclaration global : globalList) {
-            if (global != null && global.line() < line && currBest.line < global.line()) currBest = global;
+            if (global != null && global.line() < line && (currBest == null || currBest.line < global.line())) currBest = global;
         }
+        if (currBest == null) return null;
         return currBest.range();
     }
 
     public boolean isVariableValidAt(String name, String scope, int line) {
-        return findVariable(name, scope, line) != null;
+        return String.valueOf(findVariable(name, line)) != "null";
     }
 
     private List<VariableDeclaration> getFromScope(String name, String scope) {
         Map<String, List<VariableDeclaration>> vars = scopedVariables.get(scope);
-        if (vars == null) return null;
-        return vars.get(name);
+        if (vars == null) return List.of();
+        List<VariableDeclaration> res = vars.get(name);
+        if (res == null) return List.of();
+        return res;
     }
 
     public Range findProcedureRef(String name) {

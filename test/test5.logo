@@ -13,7 +13,7 @@ to drawShapes :count
   make "i 0
   make "xd 5
   repeat :xd [
-    right 454
+    right 45
     triangle 30
   ]
 end
