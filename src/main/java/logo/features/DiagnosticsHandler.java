@@ -36,12 +36,22 @@ public class DiagnosticsHandler {
         }
 
         // check variable references
+        // for (SymbolReference ref : doc.symbols.getVariableRefs()) {
+        //     String name = ref.name().toLowerCase();
+        //     if (doc.symbols.findVariable(name) == null) {
+        //         diagnostics.add(new Diagnostic(
+        //             ref.range(),
+        //             "Undefined variable: " + ref.name(),
+        //             DiagnosticSeverity.Error,
+        //             "logo-lsp"
+        //         ));
+        //     }
+        // }
         for (SymbolReference ref : doc.symbols.getVariableRefs()) {
-            String name = ref.name().toLowerCase();
-            if (doc.symbols.findVariable(name) == null) {
+            if (!doc.symbols.isVariableValidAt(ref.name(), ref.scope(), ref.order())) {
                 diagnostics.add(new Diagnostic(
                     ref.range(),
-                    "Undefined variable: " + ref.name(),
+                    "Variable :" + ref.name() + " is not in scope here",
                     DiagnosticSeverity.Error,
                     "logo-lsp"
                 ));

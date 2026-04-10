@@ -54,7 +54,7 @@ Handles all `textDocument/*` requests from the client. Listens for file open/cha
 Stub implementation of LSP4J's `WorkspaceService`. Required by the interface but not used in the current implementation.
 
 ### `analysis/DocumentState.java`
-The core parsing class. Takes raw document text, runs it through the ANTLR-generated `LogoLexer` and `LogoParser`, builds a parse tree, then runs `SymbolTableBuilder` over it to collect all declarations and references. Stores the token stream, parse tree, and symbol table together. Re-created from scratch on every document change.
+The core parsing class. Takes raw document text, runs it through the ANTLR-generated `LogoLexer` and `LogoParser`, builds a parse tree, then runs `SymbolTableBuilder` over it to collect all declarations and references. Stores the token stream, parse tree, and symbol table together. Re-created from scratch on every document change. It is also responsible for giving the client parsing errors (gathered at parseAndPublish in `server/LogoTextDocumentService.java`)
 
 ### `analysis/SymbolTable.java`
 Stores all procedure and variable declarations found in the document, each mapped by name to the `Range` (line + column) where they were declared. Also stores all procedure call references and variable references as `SymbolReference` records. Provides lookup methods used by goto-definition, diagnostics, and code actions.

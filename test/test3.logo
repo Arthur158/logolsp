@@ -3,7 +3,7 @@ to square :size
 end
 
 ; call an undefined procedure
-triangle 50
+square 50
 make "mySizee 50
 
 

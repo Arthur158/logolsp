@@ -15,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import logo.features.DiagnosticsHandler;
 
+import org.eclipse.lsp4j.Diagnostic;
+import java.util.ArrayList;
+
 public class LogoTextDocumentService implements TextDocumentService {
 
     private final Map<String, DocumentState> documents = new ConcurrentHashMap<>();
@@ -62,12 +65,26 @@ public class LogoTextDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(Either.forLeft(List.of(loc)));
     }
 
+    // private void parseAndPublish(String uri, String text) {
+    //     DocumentState doc = DocumentState.parse(uri, text);
+    //     documents.put(uri, doc);
+    //
+    //     DocumentState.log("=== Parsed: " + uri);
+    //     DocumentState.log(doc.printTree());
+    //
+    //     List<Diagnostic> diagnostics = DiagnosticsHandler.compute(doc);
+    //     DocumentState.log("Diagnostics: " + diagnostics.size());
+    //     client.publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
+    // }
+
     private void parseAndPublish(String uri, String text) {
         DocumentState doc = DocumentState.parse(uri, text);
         documents.put(uri, doc);
 
-        // compute and push diagnostics
-        List<Diagnostic> diagnostics = DiagnosticsHandler.compute(doc);
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        diagnostics.addAll(doc.parseErrors);                  // syntax errors
+        diagnostics.addAll(DiagnosticsHandler.compute(doc));  // undefined symbols
+
         client.publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
     }
 
