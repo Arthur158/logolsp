@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class SymbolTable {
 
@@ -47,5 +48,13 @@ public class SymbolTable {
 
     public List<SymbolReference> getVariableRefs() {
         return variableRefs;
+    }
+
+    public Set<String> getAllVariableNames() {
+        return variables.keySet();
+    }
+
+    public Set<String> getAllProcedureNames() {
+        return procedures.keySet();
     }
 }

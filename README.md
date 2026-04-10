@@ -8,6 +8,8 @@ A Language Server Protocol (LSP) implementation for the LOGO programming languag
 
 - **Syntax highlighting** — keywords, functions, variables, numbers, strings and comments each rendered in distinct colors
 - **Go-to-declaration** — jump to the declaration of any procedure or variable with Ctrl+B
+- **Diagnostics** — red underlines on calls to undefined procedures and references to undeclared variables
+- **Code actions** — quick fix suggestions that replace a mistyped name with the lexically closest declared name
 
 ---
 
@@ -23,10 +25,13 @@ src/main/java/logo/
 ├── analysis/
 │   ├── DocumentState.java
 │   ├── SymbolTable.java
-│   └── SymbolTableBuilder.java
+│   ├── SymbolTableBuilder.java
+│   └── EditDistance.java
 └── features/
     ├── SemanticTokensHandler.java
-    └── DefinitionHandler.java
+    ├── DefinitionHandler.java
+    ├── DiagnosticsHandler.java
+    └── CodeActionHandler.java
 
 src/main/antlr/logo/parser/
 └── Logo.g4
@@ -40,28 +45,37 @@ src/main/antlr/logo/parser/
 Entry point. Launches the LSP server over **stdio**, which is how LSP clients like LSP4IJ communicate with it. Wires together the server and the LSP4J launcher. All communication happens over stdin/stdout as JSON-RPC — nothing should ever be printed to stdout directly as it would corrupt the protocol.
 
 ### `server/LogoLanguageServer.java`
-The top-level server class. Implements LSP4J's `LanguageServer` interface. Responds to the `initialize` handshake and tells the client what features are supported: semantic tokens for syntax highlighting and goto-definition. Declares the semantic token legend — the list of token type names (`keyword`, `function`, `variable`, `number`, `string`, `comment`) that map indices in the token data to colors in the editor.
+The top-level server class. Implements LSP4J's `LanguageServer` interface. Responds to the `initialize` handshake and tells the client what features are supported: semantic tokens for syntax highlighting, goto-definition, diagnostics, and code actions. Declares the semantic token legend — the list of token type names (`keyword`, `function`, `variable`, `number`, `string`, `comment`) that map indices in the token data to colors in the editor.
 
 ### `server/LogoTextDocumentService.java`
-Handles all `textDocument/*` requests from the client. Listens for file open/change/close events, re-parses the document each time, and stores the result in a map keyed by file URI. Delegates `textDocument/semanticTokens/full` to `SemanticTokensHandler` and `textDocument/definition` to `DefinitionHandler`.
+Handles all `textDocument/*` requests from the client. Listens for file open/change/close events, re-parses the document each time via `parseAndPublish`, and stores the result in a map keyed by file URI. On every parse it pushes fresh diagnostics to the client. Delegates feature requests to the appropriate handler classes.
 
 ### `server/LogoWorkspaceService.java`
-Stub implementation of LSP4J's `WorkspaceService`. Required by the interface but not used yet. Will eventually handle workspace-wide events like watched file changes.
+Stub implementation of LSP4J's `WorkspaceService`. Required by the interface but not used in the current implementation.
 
 ### `analysis/DocumentState.java`
-The core parsing class. Takes raw document text, runs it through the ANTLR-generated `LogoLexer` and `LogoParser`, builds a parse tree, then runs `SymbolTableBuilder` over it to collect all declarations. Stores the token stream, parse tree, and symbol table together. Re-created from scratch on every document change.
+The core parsing class. Takes raw document text, runs it through the ANTLR-generated `LogoLexer` and `LogoParser`, builds a parse tree, then runs `SymbolTableBuilder` over it to collect all declarations and references. Stores the token stream, parse tree, and symbol table together. Re-created from scratch on every document change.
 
 ### `analysis/SymbolTable.java`
-Stores all procedure and variable declarations found in the document, each mapped by name to the `Range` (line + column) where they were declared. Provides `findProcedure(name)` and `findVariable(name)` lookups used by goto-definition.
+Stores all procedure and variable declarations found in the document, each mapped by name to the `Range` (line + column) where they were declared. Also stores all procedure call references and variable references as `SymbolReference` records. Provides lookup methods used by goto-definition, diagnostics, and code actions.
 
 ### `analysis/SymbolTableBuilder.java`
-Extends ANTLR's `LogoBaseVisitor` and walks the parse tree to populate the `SymbolTable`. Visits `procedureDef` nodes to record procedure declarations, `param` nodes to record procedure parameters as variable declarations, and `makeStmt`/`localMakeStmt` nodes to record variable assignments.
+Extends ANTLR's `LogoBaseVisitor` and walks the parse tree to populate the `SymbolTable`. Visits `procedureDef` nodes to record procedure declarations, `param` nodes to record procedure parameters as variable declarations, `makeStmt`/`localMakeStmt` nodes to record variable assignments, `procedureCall` nodes to record call references, and `variable` nodes to record variable use references.
+
+### `analysis/EditDistance.java`
+Utility class that computes the Levenshtein edit distance between two strings. Used by `CodeActionHandler` to find the closest declared name to a mistyped one. Only suggests a correction if the distance is 3 or fewer — beyond that the names are too different to be a likely typo.
 
 ### `features/SemanticTokensHandler.java`
-Produces the semantic token data sent to the client for syntax highlighting. Walks every token in the ANTLR token stream and encodes them in the LSP delta-encoded integer format (5 integers per token: delta line, delta column, length, token type index, modifiers). Assigns token types based on the ANTLR token type — keywords get index 0, function names index 1, variables index 2, numbers index 3, quoted words index 4. Variable references (`:name`) are detected by checking if the previous token was a colon.
+Produces the semantic token data sent to the client for syntax highlighting. Walks every token in the ANTLR token stream and encodes them in the LSP delta-encoded integer format (5 integers per token: delta line, delta column, length, token type index, modifiers). Assigns token types based on the ANTLR token type. Variable references (`:name`) are detected by checking if the previous token was a colon.
 
 ### `features/DefinitionHandler.java`
 Handles goto-definition. Given a cursor position, finds which token the cursor is on by scanning the token stream. If the previous token was `:`, treats it as a variable reference and looks it up in the symbol table. Otherwise tries to find it as a procedure name first, then as a variable. Returns a `Location` pointing to the declaration range in the same file.
+
+### `features/DiagnosticsHandler.java`
+Computes diagnostics by cross-referencing the symbol table. Checks every procedure call reference against declared procedures and every variable reference against declared variables. Unknown built-in commands (like `forward`, `repeat`, `right` etc.) are excluded via a hardcoded set so they are not incorrectly flagged. Returns a list of `Diagnostic` objects with error severity and a descriptive message.
+
+### `features/CodeActionHandler.java`
+Handles quick fix suggestions. When the client requests code actions for a range containing a diagnostic, this handler reads the diagnostic message to extract the mistyped name, then uses `EditDistance.findClosest` to find the nearest declared name. If a close enough match exists it returns a `CodeAction` of kind `QuickFix` containing a `TextEdit` that replaces the bad token with the correct one.
 
 ### `src/main/antlr/logo/parser/Logo.g4`
 The ANTLR4 grammar for the LOGO language. Defines lexer rules (keywords, identifiers, numbers, symbols) and parser rules (procedure definitions, repeat/if/while/for loops, expressions, variable references). Covers the full Turtle Academy command set including `FOREVER`, `WHILE`, `UNTIL`, `DO.WHILE`, `DO.UNTIL`, `FOR`, `MAKE`, `LOCALMAKE`, `OUTPUT`, and `STOP`. ANTLR generates `LogoLexer.java`, `LogoParser.java`, and `LogoBaseVisitor.java` from this file at build time — these are never edited directly.
@@ -109,7 +123,6 @@ The server does not auto-update when the JAR changes. After running `./gradlew s
 
 Open a `.logo` file, click on a procedure call or variable reference, and press **Ctrl+B** (or right-click → Go To → Declaration).
 
-Example:
 ```logo
 to square :size
   repeat 4 [forward :size right 90]
@@ -123,6 +136,29 @@ square :mySize
 - Click `square` on the last line → jumps to `to square :size`
 - Click `:mySize` → jumps to `make "mySize 50`
 - Click `:size` inside the body → jumps to `:size` in the parameter list
+
+---
+
+## Testing Diagnostics and Code Actions
+
+```logo
+to square :size
+  repeat 4 [forward :size right 90]
+end
+
+make "mySize 50
+
+; typo in procedure name
+triange 50
+
+; typo in variable name
+forward :mySoze
+```
+
+- `triange` gets a red underline — "Undefined procedure: triange"
+- `:mySoze` gets a red underline — "Undefined variable: mySoze"
+- Click the lightbulb (or press **Alt+Enter**) on either underline to see the quick fix suggestion
+- Selecting the fix rewrites the token to the closest declared name
 
 ---
 

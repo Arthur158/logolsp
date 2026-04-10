@@ -3,10 +3,13 @@ to square :size
 end
 
 ; call an undefined procedure
-square 50
+triangle 50
+make "mySizee 50
+
+
 
 ; reference an undeclared variable
-forward :undeclaredVar
+forward :mysizee
 
 ; this should be fine
 square 50

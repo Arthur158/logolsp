@@ -17,7 +17,6 @@ public class DiagnosticsHandler {
         "penup", "pu", "pendown", "pd", "clearscreen", "cs", "home",
         "setpencolor", "setpc", "print", "show", "make", "repeat",
         "if", "stop", "output", "op", "wait", "hideturtle", "showturtle"
-        // add more as needed
     );
 
     public static List<Diagnostic> compute(DocumentState doc) {

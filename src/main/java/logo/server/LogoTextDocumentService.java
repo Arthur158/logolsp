@@ -3,6 +3,7 @@ package logo.server;
 import logo.analysis.DocumentState;
 import logo.features.DefinitionHandler;
 import logo.features.SemanticTokensHandler;
+import logo.features.CodeActionHandler;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -28,6 +29,16 @@ public class LogoTextDocumentService implements TextDocumentService {
         parseAndPublish(
             params.getTextDocument().getUri(),
             params.getTextDocument().getText()
+        );
+    }
+
+    @Override
+    public CompletableFuture<List<Either<Command, CodeAction>>>
+    codeAction(CodeActionParams params) {
+        DocumentState doc = documents.get(params.getTextDocument().getUri());
+        if (doc == null) return CompletableFuture.completedFuture(List.of());
+        return CompletableFuture.completedFuture(
+            CodeActionHandler.compute(doc, params)
         );
     }
 

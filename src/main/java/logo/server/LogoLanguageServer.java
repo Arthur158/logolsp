@@ -15,6 +15,9 @@ public class LogoLanguageServer implements LanguageServer, LanguageClientAware {
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities caps = new ServerCapabilities();
+        CodeActionOptions codeActionOptions = new CodeActionOptions();
+        codeActionOptions.setCodeActionKinds(List.of(CodeActionKind.QuickFix));
+        caps.setCodeActionProvider(codeActionOptions);
         caps.setTextDocumentSync(TextDocumentSyncKind.Full);
         caps.setDefinitionProvider(true);
 
