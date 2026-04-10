@@ -9,7 +9,7 @@ make "mySizee 50
 
 
 ; reference an undeclared variable
-forward :mysizee
+forward :mysizeeee
 
 ; this should be fine
 square 50

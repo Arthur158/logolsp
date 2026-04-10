@@ -2,6 +2,8 @@ package logo.features;
 
 import logo.analysis.DocumentState;
 import logo.analysis.EditDistance;
+import logo.analysis.Logger;
+
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
@@ -26,8 +28,8 @@ public class CodeActionHandler {
         for (Diagnostic diagnostic : params.getContext().getDiagnostics()) {
             String message = diagnostic.getMessage();
 
-            if (message.startsWith("Undefined variable: ")) {
-                String badName = message.substring("Undefined variable: ".length());
+            if (message.startsWith("Variable not in scope: ")) {
+                String badName = message.substring("Variable not in scope: ".length());
                 String closest = EditDistance.findClosest(
                     badName, doc.symbols.getAllVariableNames()
                 );
@@ -44,7 +46,7 @@ public class CodeActionHandler {
                 String closest = EditDistance.findClosest(
                     badName,
                     Stream.concat(
-                        doc.symbols.getAllVariableNames().stream(),
+                        doc.symbols.getAllProcedureNames().stream(),
                         BUILTINS.stream()
                     ).toList()
                 );

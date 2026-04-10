@@ -3,4 +3,4 @@ to square :size
 end
 
 make "mySize 50
-forward :mySide
+forward :mySize

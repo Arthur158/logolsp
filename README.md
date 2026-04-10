@@ -7,9 +7,10 @@ A Language Server Protocol (LSP) implementation for the LOGO programming languag
 ## Features
 
 - **Syntax highlighting** — keywords, functions, variables, numbers, strings and comments each rendered in distinct colors
-- **Go-to-declaration** — jump to the declaration of any procedure or variable with Ctrl+B
+- **Go-to-declaration** — jump to the declaration of any procedure or variable, scoped with function closure and position of the declaration
 - **Diagnostics** — red underlines on calls to undefined procedures and references to undeclared variables
 - **Code actions** — quick fix suggestions that replace a mistyped name with the lexically closest declared name
+- **Signature change** — simple signature change feature: change the order of the parameters in a procedure declaration, and automatically change order in calls to that procedure
 
 ---
 
@@ -57,7 +58,7 @@ Stub implementation of LSP4J's `WorkspaceService`. Required by the interface but
 The core parsing class. Takes raw document text, runs it through the ANTLR-generated `LogoLexer` and `LogoParser`, builds a parse tree, then runs `SymbolTableBuilder` over it to collect all declarations and references. Stores the token stream, parse tree, and symbol table together. Re-created from scratch on every document change. It is also responsible for giving the client parsing errors (gathered at parseAndPublish in `server/LogoTextDocumentService.java`)
 
 ### `analysis/SymbolTable.java`
-Stores all procedure and variable declarations found in the document, each mapped by name to the `Range` (line + column) where they were declared. Also stores all procedure call references and variable references as `SymbolReference` records. Provides lookup methods used by goto-definition, diagnostics, and code actions.
+Stores all procedure and variable declarations found in the document, each mapped by name to the `Range` (line + column) where they were declared. Also stores all procedure call references and variable references as `SymbolReference` records. Provides lookup methods used by goto-definition, diagnostics, and code actions. For variable, can check if the variable was declared at a given point (where a reference would be) by using procedure scope information and order of declarations/references
 
 ### `analysis/SymbolTableBuilder.java`
 Extends ANTLR's `LogoBaseVisitor` and walks the parse tree to populate the `SymbolTable`. Visits `procedureDef` nodes to record procedure declarations, `param` nodes to record procedure parameters as variable declarations, `makeStmt`/`localMakeStmt` nodes to record variable assignments, `procedureCall` nodes to record call references, and `variable` nodes to record variable use references.
@@ -159,6 +160,48 @@ forward :mySoze
 - `:mySoze` gets a red underline — "Undefined variable: mySoze"
 - Click the lightbulb (or press **Alt+Enter**) on either underline to see the quick fix suggestion
 - Selecting the fix rewrites the token to the closest declared name
+
+## Testing Signature Change
+
+```logo
+to mydraw :count :color :size
+  repeat :count [forward :size setpc :color]
+end
+
+(mydraw 33 10 500)
+mydraw 334 10 500
+```
+
+- `mydraw` gets 2 code actions: make color the first parameter or make size the first parameter
+- Apply either
+- The parameters change order, and each of the calls to mydraw also sees its arguments order change
+
+## Small issue
+
+Unfortunately, a decision I took early on, which is to make the following syntax rule:
+```
+procedureCall
+    : name=IDENT expr*
+    ;
+```
+Turned out to be a problem when doing several call in a row, where the second call and its arguments would all be seen as arguments to the first call. To solve this, one can surround the first call with parenthesis. For example:
+```
+to mydraw :count :color :size
+  repeat :count [forward :size setpc :color]
+end
+
+mydraw 33 10 500
+mydraw 334 10 500
+```
+Becomes:
+```
+to mydraw :count :color :size
+  repeat :count [forward :size setpc :color]
+end
+
+(mydraw 33 10 500)
+mydraw 334 10 500
+```
 
 ---
 

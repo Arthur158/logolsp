@@ -1,6 +1,7 @@
 package logo.server;
 
 import logo.analysis.DocumentState;
+import logo.analysis.Logger;
 import logo.features.DefinitionHandler;
 import logo.features.SemanticTokensHandler;
 import logo.features.CodeActionHandler;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import logo.features.DiagnosticsHandler;
+import logo.features.ReorderParamsHandler;
 
 import org.eclipse.lsp4j.Diagnostic;
 import java.util.ArrayList;
@@ -40,9 +42,11 @@ public class LogoTextDocumentService implements TextDocumentService {
     codeAction(CodeActionParams params) {
         DocumentState doc = documents.get(params.getTextDocument().getUri());
         if (doc == null) return CompletableFuture.completedFuture(List.of());
-        return CompletableFuture.completedFuture(
-            CodeActionHandler.compute(doc, params)
-        );
+
+        List<Either<Command, CodeAction>> actions = new ArrayList<>();
+        actions.addAll(CodeActionHandler.compute(doc, params));
+        actions.addAll(ReorderParamsHandler.compute(doc, params, doc.text));
+        return CompletableFuture.completedFuture(actions);
     }
 
     @Override
@@ -86,6 +90,7 @@ public class LogoTextDocumentService implements TextDocumentService {
         diagnostics.addAll(DiagnosticsHandler.compute(doc));  // undefined symbols
 
         client.publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
+        // Logger.log(doc.printTree());
     }
 
     @Override
