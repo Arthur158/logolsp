@@ -1,6 +1,8 @@
 package logo.features;
 
 import logo.analysis.DocumentState;
+import logo.analysis.Logger;
+
 import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
@@ -29,14 +31,15 @@ public class DefinitionHandler {
 
         // check if it's a variable reference (:name)
         if (prevToken != null && prevToken.getText().equals(":")) {
-            decl = doc.symbols.findVariable(name);
+            decl = doc.symbols.findVariable(name, target.getLine());
         } else {
+            Logger.log("unexpected");
             // try procedure first, then variable (for "name in MAKE)
             decl = doc.symbols.findProcedure(name);
             if (decl == null) {
                 // strip leading " for quoted words
                 decl = doc.symbols.findVariable(name.startsWith("\"")
-                    ? name.substring(1) : name);
+                    ? name.substring(1) : name, target.getLine());
             }
         }
 

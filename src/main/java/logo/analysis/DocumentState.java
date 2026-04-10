@@ -19,18 +19,21 @@ public class DocumentState {
     public final CommonTokenStream tokens;
     public final LogoParser.ProgramContext tree;
     public final SymbolTable symbols;
+    public final String text;
 
     public final List<Diagnostic> parseErrors;
 
     private DocumentState(String uri, CommonTokenStream tokens,
                           LogoParser.ProgramContext tree,
                           SymbolTable symbols,
-                          List<Diagnostic> parseErrors) {
+                          List<Diagnostic> parseErrors,
+                          String text) {
         this.uri         = uri;
         this.tokens      = tokens;
         this.tree        = tree;
         this.symbols     = symbols;
         this.parseErrors = parseErrors;
+        this.text        = text;
     }
 
     public static DocumentState parse(String uri, String text) {
@@ -72,7 +75,7 @@ public class DocumentState {
         SymbolTable symbols = new SymbolTable();
         new SymbolTableBuilder(symbols).visit(tree);
 
-        return new DocumentState(uri, tokens, tree, symbols, parseErrors);
+        return new DocumentState(uri, tokens, tree, symbols, parseErrors, text);
     }
 
     public String printTree() {

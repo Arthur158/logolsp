@@ -7,9 +7,11 @@ end
 to triangle :size
   repeat 3 [forward :size right 120]
 end
-]
+
+make "count 23
+
 to drawShapes :count
-  make "i 0
+  make "count 0
   repeat :count [
     square 50
     right 45
@@ -17,4 +19,4 @@ to drawShapes :count
   ]
 end
 
-drawShapess 8
+drawshapes count

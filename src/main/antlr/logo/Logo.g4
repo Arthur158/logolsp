@@ -25,6 +25,7 @@ statement
     | outputStmt
     | stopStmt
     | procedureCall
+    | LPAREN statement RPAREN
     ;
 
 // TO square :size   ... END

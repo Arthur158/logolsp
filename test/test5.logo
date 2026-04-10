@@ -1,6 +1,7 @@
 ; This is a comment
 
 make "xd 5
+make "xd 3
 
 triangle :xd
 
@@ -10,10 +11,20 @@ end
 
 to drawShapes :count
   make "i 0
-  repeat :size [
+  make "xd 5
+  repeat :xd [
     right 45
     triangle 30
   ]
 end
 
-drawShapes :x
+to drawShapes :count
+  make "i 0
+  repeat :xd [
+    right 454
+    triangle 30
+  ]
+end
+
+
+drawShapes :xd
