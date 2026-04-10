@@ -48,10 +48,10 @@ public class DiagnosticsHandler {
         //     }
         // }
         for (SymbolReference ref : doc.symbols.getVariableRefs()) {
-            if (!doc.symbols.isVariableValidAt(ref.name(), ref.scope(), ref.order())) {
+            if (!doc.symbols.isVariableValidAt(ref.name(), ref.scope(), ref.line())) {
                 diagnostics.add(new Diagnostic(
                     ref.range(),
-                    "Variable :" + ref.name() + " is not in scope here",
+                    "Variable not in scope: " + ref.name(),
                     DiagnosticSeverity.Error,
                     "logo-lsp"
                 ));
