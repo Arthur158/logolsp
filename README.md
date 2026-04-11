@@ -32,7 +32,8 @@ src/main/java/logo/
     ├── SemanticTokensHandler.java
     ├── DefinitionHandler.java
     ├── DiagnosticsHandler.java
-    └── CodeActionHandler.java
+    ├── CodeActionHandler.java
+    └── ReorderParamsHandler.java
 
 src/main/antlr/logo/parser/
 └── Logo.g4
@@ -78,6 +79,9 @@ Computes diagnostics by cross-referencing the symbol table. Checks every procedu
 ### `features/CodeActionHandler.java`
 Handles quick fix suggestions. When the client requests code actions for a range containing a diagnostic, this handler reads the diagnostic message to extract the mistyped name, then uses `EditDistance.findClosest` to find the nearest declared name. If a close enough match exists it returns a `CodeAction` of kind `QuickFix` containing a `TextEdit` that replaces the bad token with the correct one.
 
+### `ReorderParamsHandler.java`
+Handles some code actions, which are used to reorder parameter reordering in a procedure definition, and update corresponding calls. Done as a dummy version of what would be done in the internship.
+
 ### `src/main/antlr/logo/parser/Logo.g4`
 The ANTLR4 grammar for the LOGO language. Defines lexer rules (keywords, identifiers, numbers, symbols) and parser rules (procedure definitions, repeat/if/while/for loops, expressions, variable references). Covers the full Turtle Academy command set including `FOREVER`, `WHILE`, `UNTIL`, `DO.WHILE`, `DO.UNTIL`, `FOR`, `MAKE`, `LOCALMAKE`, `OUTPUT`, and `STOP`. ANTLR generates `LogoLexer.java`, `LogoParser.java`, and `LogoBaseVisitor.java` from this file at build time — these are never edited directly.
 
@@ -85,7 +89,7 @@ The ANTLR4 grammar for the LOGO language. Defines lexer rules (keywords, identif
 
 ## Building
 
-Requires Java 21 and Gradle (or use the included wrapper).
+Requires Java 21 and Gradle (or use the included wrapper, by running `gradle wrapper`).
 
 ```bash
 # Generate ANTLR sources
@@ -161,6 +165,22 @@ forward :mySoze
 - Click the lightbulb (or press **Alt+Enter**) on either underline to see the quick fix suggestion
 - Selecting the fix rewrites the token to the closest declared name
 
+```logo
+to square :size
+  repeat :size2 [forward :size right 90]
+end
+
+make "size2 50
+
+
+; typo in variable name
+forward :size
+```
+
+- here `size` and `size2` are used in places where they are not in scope
+- The code action only recommend to fix typos with variables that are in scope.
+
+
 ## Testing Signature Change
 
 ```logo
@@ -204,11 +224,3 @@ mydraw 334 10 500
 ```
 
 ---
-
-## Changing Highlight Colors
-
-Semantic token colors are controlled by your IntelliJ color scheme, not the server. To override them:
-
-`Settings → Editor → Color Scheme → Language Defaults → Semantic token types`
-
-Each token type name declared in the legend (`keyword`, `function`, `variable`, `number`, `string`, `comment`) can be assigned a custom foreground color there.

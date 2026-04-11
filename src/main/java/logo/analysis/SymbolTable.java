@@ -82,7 +82,7 @@ public class SymbolTable {
         for (VariableDeclaration local : localList) {
             if (local != null && local.line() < line && (currBest == null || currBest.line < local.line())) currBest = local;
         }
-        List<VariableDeclaration> globalList = getFromScope(key, scope);
+        List<VariableDeclaration> globalList = getFromScope(key, null);
         for (VariableDeclaration global : globalList) {
             if (global != null && global.line() < line && (currBest == null || currBest.line < global.line())) currBest = global;
         }
@@ -108,12 +108,39 @@ public class SymbolTable {
 
     public List<SymbolReference> getProcedureRefs() { return procedureRefs; }
     public List<SymbolReference> getVariableRefs()  { return variableRefs; }
-    public Set<String> getAllVariableNames() {
-        Set<String> all = new HashSet<>();
-        for (Map<String, List<VariableDeclaration>> scope : scopedVariables.values()) {
-            all.addAll(scope.keySet());
+
+    public Set<String> getAllVariableNamesAtLocation(int line) {
+        String scope = null;
+
+        for (Map.Entry<Range, String> entry : procedureRanges) {
+            if (entry.getKey().getStart().getLine() <= line && entry.getKey().getEnd().getLine() >= line) scope = entry.getValue();
         }
-        return all;
+
+        Logger.log(scope);
+
+        Set<String> result = new HashSet<>();
+
+        Map<String, List<VariableDeclaration>> globalVars = scopedVariables.get(null);
+        if (globalVars != null) {
+            for (Map.Entry<String, List<VariableDeclaration>> entry : globalVars.entrySet()) {
+                boolean anyVisible = entry.getValue().stream()
+                    .anyMatch(decl -> decl.line() <= line);
+                if (anyVisible) result.add(entry.getKey());
+            }
+        }
+
+        if (scope != null) {
+            Map<String, List<VariableDeclaration>> localVars = scopedVariables.get(scope);
+            if (localVars != null) {
+                for (Map.Entry<String, List<VariableDeclaration>> entry : localVars.entrySet()) {
+                    boolean anyVisible = entry.getValue().stream()
+                        .anyMatch(decl -> decl.line() <= line);
+                    if (anyVisible) result.add(entry.getKey());
+                }
+            }
+        }
+
+        return result;
     }
 
     // public Map<String, VariableDeclaration> getVariablesInScope(String scope) {

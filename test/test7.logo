@@ -1,8 +1,8 @@
-to mydraw :count :color :size
+to mydraw :color :count :size
   repeat :count [forward :size setpc :color]
 end
 
-(mydraw 33 10 500)
-(mydraw 334 10 500)
+(mydraw 10 33 500)
+(mydraw 10 334 500)
 forward 3
 

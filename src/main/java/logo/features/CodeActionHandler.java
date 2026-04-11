@@ -30,8 +30,10 @@ public class CodeActionHandler {
 
             if (message.startsWith("Variable not in scope: ")) {
                 String badName = message.substring("Variable not in scope: ".length());
+                Logger.log(badName);
+                Logger.log(String.valueOf(doc.symbols.getAllVariableNamesAtLocation(diagnostic.getRange().getStart().getLine())));
                 String closest = EditDistance.findClosest(
-                    badName, doc.symbols.getAllVariableNames()
+                    badName, doc.symbols.getAllVariableNamesAtLocation(diagnostic.getRange().getStart().getLine())
                 );
                 if (closest != null) {
                     actions.add(Either.forRight(

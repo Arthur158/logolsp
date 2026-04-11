@@ -22,7 +22,7 @@ public class SymbolTableBuilder extends LogoBaseVisitor<Void> {
     @Override
     public Void visitProcedureDef(LogoParser.ProcedureDefContext ctx) {
         Range funcRange = new Range(
-                new Position(ctx.statement().getFirst().getStart().getLine(),ctx.statement().getFirst().getStart().getCharPositionInLine()),
+                new Position(ctx.statement().getFirst().getStart().getLine() - 1,ctx.statement().getFirst().getStart().getCharPositionInLine()),
                 new Position(ctx.statement().getLast().getStop().getLine(),ctx.statement().getLast().getStop().getCharPositionInLine())
         );
         String name = ctx.name.getText();
@@ -71,7 +71,7 @@ public class SymbolTableBuilder extends LogoBaseVisitor<Void> {
     @Override
     public Void visitParam(LogoParser.ParamContext ctx) {
         String name = ctx.IDENT().getText();
-        symbols.addVariable(name, toRange(ctx.IDENT().getSymbol()), currentScope, ctx.getStart().getLine());
+        symbols.addVariable(name, toRange(ctx.IDENT().getSymbol()), currentScope, ctx.getStart().getLine() - 1);
         return visitChildren(ctx);
     }
 

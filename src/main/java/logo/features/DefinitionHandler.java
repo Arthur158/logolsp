@@ -33,7 +33,6 @@ public class DefinitionHandler {
         if (prevToken != null && prevToken.getText().equals(":")) {
             decl = doc.symbols.findVariable(name, target.getLine());
         } else {
-            Logger.log("unexpected");
             // try procedure first, then variable (for "name in MAKE)
             decl = doc.symbols.findProcedure(name);
             if (decl == null) {
